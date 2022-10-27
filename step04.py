@@ -1,15 +1,14 @@
-# python Step04/step04_kurihara_v2.py Step04/input.txt "2022-04-01 00:00:00" "2022-12-30 00:00:00" Boston
 import sys
 from datetime import datetime
 import re
 
-def judge_epoch(date):
+def to_datatime(input_datetime):
     '''
-    日時がepoch秒でもYYYY型でもYYYY型に揃える関数
+    str型の日時情報をdatetime型に変換する関数
 
     Parameters
     ------------
-    date: int/datetime
+    input_date: str
         エポック秒またはYYYY型で日時を表す。
 
     Returns
@@ -18,64 +17,16 @@ def judge_epoch(date):
         YYYY型の日時を表す。
     '''
 
-    if type(date) == int:
+    if input_datetime.isdecimal():
     # epoch秒の場合
-        date = datetime.fromtimestamp(date)
+        date = datetime.fromtimestamp(int(input_datetime))
     else:
     # YYYY-MM-DDでの入力の時
-        date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+        date = datetime.strptime(input_datetime, "%Y-%m-%d %H:%M:%S")
 
     return date
 
-
-def get_input_info(argvs):
-    '''
-    コマンドラインからの引数の情報を取得する関数
-
-    Parameters
-    ------------
-    file_name: str
-        読み込むファイルの名前
-    start_input: datetime
-        検索時に使う開始日時
-    end_input: datetime   
-        検索時に使う終了日時
-    keywd: str/None
-        検索時に使うキーワード(引数がない場合はNone)
-
-    Returns
-    ------------ 
-    file_name: str
-        読み込むファイルの名前
-    start_input: datetime
-        検索時に使う開始日時
-    end_input: datetime   
-        検索時に使う終了日時
-    keywd: str/None
-        検索時に使うキーワード(引数がない場合はNone)
-
-    '''
-    
-    file_name = argvs[1]
-    
-    start_input = judge_epoch(argvs[2])
-    
-    end_input = judge_epoch(argvs[3])
-
-    if len(argvs) == 5:
-        keywd = argvs[-1]
-    else:    
-        keywd = None
-
-    #startとendが逆転してたらエラー
-    if str(start_input) > str(end_input):
-        print("開始時刻と終了時刻が逆です。", file = sys.stderr)
-        sys.exit(1)
-
-    return file_name, start_input, end_input, keywd
-
-
-def get_file_info(file_name):
+def read_file(filename):
     '''
     読み込んだファイルの内容を取得する関数
 
@@ -83,56 +34,30 @@ def get_file_info(file_name):
     ------------
     file_lines: list
         テキストファイルの1行を1つの要素として格納している
-    file_texts: list
-        一次元目:テキストファイルの1行を1つの要素として格納している
-        二次元目:空白区切りで１つの単語を１つの要素として格納している
 
     Returns
     ------------
     file_lines: list
         テキストファイルの1行を1つの要素として格納している
-    file_texts: list
-        一次元目:テキストファイルの1行を1つの要素として格納している
-        二次元目:空白区切りで１つの単語を１つの要素として格納している
 
     '''
 
+    file_lines = list() 
     try:
-        # 改行コードをLFにする
-        with open(file_name, 'r', newline = None ) as f:
-            # 行ごとに読み込む
-            # 空白行は読み込まずにスキップする
-            file_lines = list() 
-            for i in f.readlines():
-                # 連続する２つ以上のスペースは\nに置き換えられる
-                i = re.sub('(  )+','\n', i)
-                # スペース単体、または２つ以上のスペースだけの行は読み込まれずにスキップされる
-                if i == "\n" or i == "\n\n":
-                    pass
-                else:
-                    file_lines.append(i)
-
-            # 「,」がキーワード検索のときに邪魔になるので空白と置換
-            for i in range(len(file_lines)):
-                file_lines[i] = file_lines[i].replace(',','')
-
-            # 空白区切りで要素としてリストに格納
-            file_texts = list()
-            for i in file_lines:
-                text = i.split()
-                file_texts.append(text)
+        with open(filename, 'r', encoding='utf-8') as f:
+            for line in f.readlines():
+                if bool(line.strip()):
+                    file_lines.append(line.strip())
     except:
         print("ファイルの名前が正しくありません。または存在しません", file = sys.stderr)
         sys.exit(1)
 
     # ファイルの中身がからだったらエラー
-
     if len(file_lines) == 0:
         print("ファイルの中身が空です", file = sys.stderr)
         sys.exit(1)
 
-    return file_lines, file_texts
-
+    return file_lines
 
 def arranged_input_data(file_lines, file_texts):
     '''
@@ -207,7 +132,7 @@ def arranged_input_data(file_lines, file_texts):
 
     return sorted_file_texts, ip_list
 
-def matching_ip_list(sorted_file_texts,start_input,end_input):
+def matching_ip_list(sorted_file_texts,start_datetime,end_datetime):
     '''
     ipアドレス基準でソート済みのテキストから指定の日時に合致するipアドレスを抽出する関数
 
@@ -230,7 +155,7 @@ def matching_ip_list(sorted_file_texts,start_input,end_input):
     
     for i in range(len(sorted_file_texts)):
         date, ip = sorted_file_texts[i][0],sorted_file_texts[i][1]
-        if str(start_input) <= date and date <= str(end_input):
+        if str(start_datetime) <= date and date <= str(end_datetime):
             matched_ip_list.append(ip)
 
     return matched_ip_list
@@ -255,22 +180,35 @@ def main():
         同一のipアドレスの数を順番に格納
     '''
 
-    argvs = sys.argv
+    args = sys.argv
     
-    if len(argvs) < 4:
+    if len(args) < 4:
         print("引数の数が足りません。", file = sys.stderr)
-        return 1
+        sys.exit(1)
+    
     # ファイル名、開始日時、終了日時、キーワードを取得
-    file_name, start_input, end_input, keywd = get_input_info(argvs)
+    file_name = args[1]
+    start_datetime = toDatatime(args[2])
+    end_datetime = toDatatime(args[3])
+    
+    #sstart_datetimeとend_datetimeが逆転してたらエラー
+    if str(start_datetime) > str(end_datetime):
+        print("開始時刻と終了時刻が逆です。", file = sys.stderr)
+        sys.exit(1)
+
+    if len(args) == 5:
+        keywd = args[-1]
+    else:    
+        keywd = None
 
     # 行ごとのファイル内容と、単語ごとのファイルの内容を取得
-    file_lines, file_texts = get_file_info(file_name)
+    file_lines, file_texts = get_file(file_name)
 
     # 整形したファイルの内容と、ipアドレスのみのリストを取得する
     sorted_file_texts, ip_list = arranged_input_data(file_lines, file_texts)
 
     # 指定の日時が開始日時から終了日時までの範囲に該当するipアドレスのみを格納するリストを取得する
-    matched_ip_list = matching_ip_list(sorted_file_texts,start_input,end_input)
+    matched_ip_list = matching_ip_list(sorted_file_texts,start_datetime,end_datetime)
 
     # ソート済みのipアドレス
     for i in range(len(matched_ip_list)):
