@@ -1,4 +1,3 @@
-from cmath import log
 import sys
 from datetime import datetime
 import re
@@ -57,7 +56,7 @@ def read_file(filename):
 
     return file_lines
 
-def filter_log(log_lines, start_datetime, end_datetime):
+def filter_log_datetime(log_lines, start_datetime, end_datetime):
     '''
     ファイルを日時情報で絞り込む関数
     Parameters
@@ -92,6 +91,30 @@ def filter_log(log_lines, start_datetime, end_datetime):
 
     return filter_log_lines
 
+def fileter_log_keyword(log_lines, keyword):
+    '''
+    ファイルをキーワードで絞り込む関数
+    Parameters
+    ------------
+    log_lines: list
+        ログのリストデータ
+    keyword: list
+        ログを絞り込む文字列リスト
+    match_keyword
+        対象のログに指定のキーワードが存在しているかを確認したマッチオブジェクト
+    Returns
+    ------------
+    filter_log_lines: list
+        開始時刻と終了時刻の範囲内にあるログのリスト
+    '''
+    filter_log_lines = list()
+
+    for line in log_lines:
+        match_keyword = re.search(keyword, line)
+        if match_keyword:
+            filter_log_lines.append(line)
+
+    return filter_log_lines
 #def matching_ip_list(sorted_file_texts,start_datetime,end_datetime):
 #    '''
 #    ipアドレス基準でソート済みのテキストから指定の日時に合致するipアドレスを抽出する関数
@@ -162,10 +185,14 @@ def main():
         keywd = None
 
     # ファイルの内容を取得
-    file_lines = read_file(logfile)
+    log_lines = read_file(logfile)
 
     # ファイルの内容を日時で絞り込む
-    filetered_log = filter_log(file_lines,start_datetime,end_datetime)
+    filetered_log_datetime = filter_log_datetime(log_lines,start_datetime,end_datetime)
+
+    # キーワードで絞り込む
+    if keywd:
+        filetered_log_keyword = fileter_log_keyword(filetered_log_datetime, keywd)
 
 #    # 指定の日時が開始日時から終了日時までの範囲に該当するipアドレスのみを格納するリストを取得する
 #    matched_ip_list = matching_ip_list(sorted_file_texts,start_datetime,end_datetime)
