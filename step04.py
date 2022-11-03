@@ -186,7 +186,7 @@ def main():
     start_datetime = to_datatime(args[2])
     end_datetime = to_datatime(args[3])
 
-    #start_datetimeとend_datetimeが逆転してたらエラー
+    # start_datetimeとend_datetimeが逆転してたらエラー
     if str(start_datetime) > str(end_datetime):
         print("開始時刻と終了時刻が逆です。", file = sys.stderr)
         sys.exit(1)
