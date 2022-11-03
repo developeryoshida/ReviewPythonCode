@@ -29,10 +29,12 @@ def to_datatime(str_datetime):
 def read_file(filename):
     '''
     読み込んだファイルの内容を取得する関数
+
     Parameters
     ------------
     filename: str
         読み込み対象のファイル名を指定する
+
     Returns
     ------------
     file_lines: list
@@ -40,6 +42,8 @@ def read_file(filename):
     '''
 
     file_lines = list()
+
+    # ファイルの空行を排除し、読み込む
     try:
         with open(filename, 'r', encoding = 'utf-8') as f:
             for line in f.readlines():
@@ -59,6 +63,7 @@ def read_file(filename):
 def filter_log_datetime(log_lines, start_datetime, end_datetime):
     '''
     ファイルを日時情報で絞り込む関数
+
     Parameters
     ------------
     log_lines: list
@@ -94,6 +99,7 @@ def filter_log_datetime(log_lines, start_datetime, end_datetime):
 def fileter_log_keyword(log_lines, keyword):
     '''
     ファイルをキーワードで絞り込む関数
+
     Parameters
     ------------
     log_lines: list
@@ -102,11 +108,15 @@ def fileter_log_keyword(log_lines, keyword):
         ログを絞り込む文字列リスト
     match_keyword
         対象のログに指定のキーワードが存在しているかを確認したマッチオブジェクト
+
     Returns
     ------------
     filter_log_lines: list
         開始時刻と終了時刻の範囲内にあるログのリスト
     '''
+    if keyword == None:
+        return log_lines
+
     filter_log_lines = list()
 
     for line in log_lines:
@@ -115,33 +125,35 @@ def fileter_log_keyword(log_lines, keyword):
             filter_log_lines.append(line)
 
     return filter_log_lines
-#def matching_ip_list(sorted_file_texts,start_datetime,end_datetime):
-#    '''
-#    ipアドレス基準でソート済みのテキストから指定の日時に合致するipアドレスを抽出する関数
-#
-#    Parameters
-#    ------------
-#    matched_ip_list: list
-#        開始時刻と終了時刻の範囲内にあるipアドレスを格納
-#    date: str
-#        日時を順番に格納
-#    ip: str
-#        ipアドレスを順番に格納
-#
-#    Returns
-#    ------------
-#    matched_ip_list: list
-#        開始時刻と終了時刻の範囲内にあるipアドレスを格納
-#    '''
-#
-#    matched_ip_list = list()
-#
-#    for i in range(len(sorted_file_texts)):
-#        date, ip = sorted_file_texts[i][0],sorted_file_texts[i][1]
-#        if str(start_datetime) <= date and date <= str(end_datetime):
-#            matched_ip_list.append(ip)
-#
-#    return matched_ip_list
+
+def count_IP(log_lines):
+    '''
+    ログのipアドレスを基準にカウント、ソートを行う関数
+
+    Parameters
+    ------------
+    log_lines: list
+        開始時刻と終了時刻の範囲内にあるipアドレスを格納
+
+    Returns
+    ------------
+    IP_list: list
+        開始時刻と終了時刻の範囲内にあるipアドレスを格納
+    '''
+    IP_list = list()
+    IP_count_list = list()
+
+    # ログファイルに存在するIPアドレスのリストを作成する
+    for line in log_lines:
+        match_IP = re.search('([0-9]{1,3}\.){3}([0-9]{1,3})', line)
+        if match_IP:
+            IP_list.append(match_IP.group())
+
+    # IPアドレスとその個数のリストを作成する
+    for IP in sorted(set(IP_list)):
+        IP_count_list.append([IP, IP_list.count(IP)])
+
+    return IP_count_list
 
 
 def main():
@@ -174,7 +186,7 @@ def main():
     start_datetime = to_datatime(args[2])
     end_datetime = to_datatime(args[3])
 
-    #sstart_datetimeとend_datetimeが逆転してたらエラー
+    #start_datetimeとend_datetimeが逆転してたらエラー
     if str(start_datetime) > str(end_datetime):
         print("開始時刻と終了時刻が逆です。", file = sys.stderr)
         sys.exit(1)
@@ -188,41 +200,18 @@ def main():
     log_lines = read_file(logfile)
 
     # ファイルの内容を日時で絞り込む
-    filetered_log_datetime = filter_log_datetime(log_lines,start_datetime,end_datetime)
+    filtered_log_datetime = filter_log_datetime(log_lines,start_datetime,end_datetime)
 
     # キーワードで絞り込む
-    if keywd:
-        filetered_log_keyword = fileter_log_keyword(filetered_log_datetime, keywd)
+    filtered_log_keyword = fileter_log_keyword(filtered_log_datetime, keywd)
 
-#    # 指定の日時が開始日時から終了日時までの範囲に該当するipアドレスのみを格納するリストを取得する
-#    matched_ip_list = matching_ip_list(sorted_file_texts,start_datetime,end_datetime)
-#
-#    # ソート済みのipアドレス
-#    for i in range(len(matched_ip_list)):
-#        # 開始時刻と終了時刻に合致するipを順番に取得
-#        ip = matched_ip_list[i]
-#        # 日時とipアドレス以外をその他としてキーワード検索に使う
-#        other = sorted_file_texts[i][2:]
-#
-#        # 同じipアドレスがいつくあるかカウント
-#        # 重複しないために同じipアドレスは一度しかカウントされない（一度カウントされたアドレスは２度目以降０としてカウントされる）
-#        cnt = 0
-#        for j in matched_ip_list:
-#            if not ip in matched_ip_list[:i]:
-#                if ip == j:
-#                    cnt += 1
-#
-#        # ipアドレスをその数と一緒に出力する
-#        # キーワードが指定されている場合はキーワードを含むもののみ出力する
-#        if cnt >= 1:
-#            # キーワード指定なしの場合
-#            if keywd == None:
-#                    print(ip,":", cnt)
-#            # キーワード指定ありの場合
-#            else:
-#                if keywd in other:
-#                    print(ip,":", cnt)
-#
+    # IPアドレスのリストを作成
+    log_IP_list = count_IP(filtered_log_keyword)
+
+    # IPアドレスのリストを表示
+    for IP, count in log_IP_list:
+        print(IP.ljust(14) + ':' + str(count))
+
     sys.exit(0)
 
 
