@@ -2,6 +2,7 @@ import sys
 from datetime import datetime
 import re
 
+
 def to_datatime(str_datetime):
     '''
     str型の日時情報をdatetime型に変換する関数
@@ -18,10 +19,10 @@ def to_datatime(str_datetime):
     '''
 
     if str_datetime.isdecimal():
-    # epoch秒の場合
+        # epoch秒の場合
         date = datetime.fromtimestamp(int(str_datetime))
     else:
-    # YYYY-MM-DDでの入力の時
+        # YYYY-MM-DDでの入力の時
         date = datetime.strptime(str_datetime, "%Y-%m-%d %H:%M:%S")
 
     return date
@@ -45,17 +46,17 @@ def read_file(filename):
 
     # ファイルの空行を排除し、読み込む
     try:
-        with open(filename, 'r', encoding = 'utf-8') as f:
+        with open(filename, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 if bool(line.strip()):
                     file_lines.append(line.strip())
     except:
-        print("ファイルの名前が正しくありません。または存在しません", file = sys.stderr)
+        print("ファイルの名前が正しくありません。または存在しません", file=sys.stderr)
         sys.exit(1)
 
     # ファイルの中身がからだったらエラー
     if len(file_lines) == 0:
-        print("ファイルの中身が空です", file = sys.stderr)
+        print("ファイルの中身が空です", file=sys.stderr)
         sys.exit(1)
 
     return file_lines
@@ -89,7 +90,7 @@ def filter_log_datetime(log_lines, start_datetime, end_datetime):
     for line in log_lines:
         match_datetime = re.match('... ([1-9]|[12][0-9]|3[01]) ([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]', line)
         if match_datetime:
-            log_datetime=datetime.strptime(year_info+match_datetime.group(), '%Y%b %d %H:%M:%S')
+            log_datetime = datetime.strptime(year_info + match_datetime.group(), '%Y%b %d %H:%M:%S')
             # 日時情報が指定の範囲内のログに絞り込む
             if start_datetime < log_datetime < end_datetime:
                 filter_log_lines.append(line)
@@ -178,17 +179,19 @@ def main():
     args = sys.argv
 
     if len(args) < 4:
-        print("引数の数が足りません。", file = sys.stderr)
+        print("引数の数が足りません。", file=sys.stderr)
         sys.exit(1)
 
     # ファイル名、開始日時、終了日時、キーワードを取得
     logfile = args[1]
     start_datetime = to_datatime(args[2])
     end_datetime = to_datatime(args[3])
+    print(start_datetime)
+    print(end_datetime)
 
     # start_datetimeとend_datetimeが逆転してたらエラー
     if str(start_datetime) > str(end_datetime):
-        print("開始時刻と終了時刻が逆です。", file = sys.stderr)
+        print("開始時刻と終了時刻が逆です。", file=sys.stderr)
         sys.exit(1)
 
     if len(args) == 5:
@@ -200,7 +203,7 @@ def main():
     log_lines = read_file(logfile)
 
     # ファイルの内容を日時で絞り込む
-    filtered_log_datetime = filter_log_datetime(log_lines,start_datetime,end_datetime)
+    filtered_log_datetime = filter_log_datetime(log_lines, start_datetime, end_datetime)
 
     # キーワードで絞り込む
     filtered_log_keyword = fileter_log_keyword(filtered_log_datetime, keywd)
@@ -217,6 +220,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
